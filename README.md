@@ -1,6 +1,6 @@
 # CachyOS KVM Configuration — Isolated Linux Guest on a GTR9 Pro Host
 
-**Version:** 6.0.2 · **Date:** 2026-07-05
+**Version:** 6.0.3 · **Date:** 2026-07-05
 
 A comprehensive, risk-ordered procedure for building, containing, and operating
 an isolated CachyOS KVM guest on a Beelink GTR9 Pro, without exposing the
@@ -78,8 +78,8 @@ sources on 2026-07-05:
 - **Dependency chains and optdepends** against the same DB (the
   `qemu-full → qemu-desktop → qemu-base → qemu-system-x86 → edk2-ovmf` firmware
   chain; `virt-manager` pulling `libvirt` via `virt-install`/`libvirt-glib`;
-  libvirt's `dnsmasq` and `iptables-nft` NAT optdepends; `iptables` providing
-  `iptables-nft`).
+  libvirt's `dnsmasq` and `iptables-nft` NAT optdepends; core `iptables`
+  providing and replacing `iptables-nft` since the 1.8.11-3 merge).
 - **The OVMF firmware path** `/usr/share/edk2/x64/OVMF_CODE.4m.fd` against the
   `edk2-ovmf` file list and the ArchWiki.
 - **The dnsmasq XML namespace** (available since libvirt 5.6.0, no support

@@ -4,6 +4,21 @@ CachyOS KVM Configuration — Changelog
 Newest first. Versioning is MAJOR.MINOR.PATCH.
 Format: - area: imperative summary.
 
+6.0.3 (2026-07-05)
+- P2: fix a dependency-provenance error carried since v4.2.0 — the
+  iptables-nft -> iptables merge was attributed to the current version
+  1.8.13, but the rename/fold (nft backend made default) actually landed at
+  iptables 1.8.11-3 on 2026-04-05 (Arch GitLab packaging MR !4). State that
+  core iptables 1.8.13-1 both provides AND replaces iptables-nft, and
+  decouple the merge version from the current version
+- P2: reconcile stale internal date — the package-provenance block was
+  stamped "verified 2026-07-04" while the header/README/changelog record a
+  2026-07-05 line-by-line re-verification; re-checked all eight versions
+  live on 2026-07-05 (all unchanged) and synced the date
+- header/README: bump verification stamp to record the iptables merge-version
+  correction and widen the cited source scope (CachyOS wiki/FAQ, Claude Code
+  permission-flag docs); no other factual claim required correction
+
 6.0.2 (2026-07-05)
 - verify: re-check every factual claim line-by-line against live sources. All
   package versions confirmed unchanged against the Arch DB (qemu-full 11.0.2,

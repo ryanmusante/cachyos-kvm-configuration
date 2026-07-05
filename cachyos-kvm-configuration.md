@@ -1,6 +1,6 @@
 # CACHYOS KVM CONFIGURATION — ISOLATED LINUX GUEST ON A GTR9 PRO HOST
 
-**Version:** 6.0.2 · **Date:** 2026-07-05 · **Purpose:** Comprehensive, risk-ordered procedure for building, containing, and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro. This revision reorients the document around **KVM configuration** as the subject; the guest's downstream use (auditing the Fish installer `ryanmusante/ry-install` with Claude Code) is retained only as the workload the environment is sized and contained for. Every factual claim re-verified line-by-line against live sources on 2026-07-05 — Arch package DB (package versions, dependency chains, optdepends, OVMF file path), libvirt upstream (dnsmasq XML namespace), Claude Code official docs (native installer, endpoints), and target repo HEAD (line/function counts). All fenced blocks syntax-checked (`bash -n`, `shellcheck`, `xmllint`).
+**Version:** 6.0.3 · **Date:** 2026-07-05 · **Purpose:** Comprehensive, risk-ordered procedure for building, containing, and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro. This revision reorients the document around **KVM configuration** as the subject; the guest's downstream use (auditing the Fish installer `ryanmusante/ry-install` with Claude Code) is retained only as the workload the environment is sized and contained for. Every factual claim re-verified line-by-line against live sources on 2026-07-05 — Arch package DB (package versions, dependency chains, optdepends, OVMF file path, the `iptables-nft`→`iptables` merge version), libvirt upstream (dnsmasq XML namespace), CachyOS wiki/FAQ (host stack, mirror ranking), Claude Code official docs (native installer, permission flag, endpoints), and target repo HEAD (line/function counts). This pass corrected one dependency-provenance error carried since v4.2.0 (the `iptables-nft` merge was attributed to the current version 1.8.13 rather than its actual landing at 1.8.11-3) and reconciled a stale internal verification date. All fenced blocks syntax-checked (`bash -n`, `shellcheck`, `xmllint`).
 
 **Host hardware base:** Beelink GTR9 Pro — AMD Ryzen AI Max+ 395 (16 C / 32 T Zen 5, x86-64-v4), 128 GB LPDDR5X, Radeon 8060S (RDNA 3.5, `gfx1151`). OS base: CachyOS (rolling). The guest sees only virtio devices; all sizing below derives from these figures.
 
@@ -89,13 +89,13 @@ $ sudo virsh net-autostart default
 $ sudo usermod -aG libvirt "$USER"
 ```
 
-**Package set and dependency provenance** (Arch package DB, verified 2026-07-04 — `qemu-full` 11.0.2, `libvirt` 12.5.0, `virt-manager` 5.1.0, `edk2-ovmf` 202605, `swtpm` 0.10.1, `dnsmasq` 2.93):
+**Package set and dependency provenance** (Arch package DB, verified 2026-07-05 — `qemu-full` 11.0.2, `libvirt` 12.5.0, `virt-manager` 5.1.0, `edk2-ovmf` 202605, `swtpm` 0.10.1, `dnsmasq` 2.93):
 
 - `libvirt` is pulled by **`virt-manager`** (via `virt-install` → `libvirt-python`, and `libvirt-glib`), *not* by `qemu-full`.
 - `qemu-full` pulls **`edk2-ovmf`** transitively (via `qemu-desktop` → `qemu-base` → `qemu-system-x86`) for UEFI guest firmware.
 - `swtpm` supplies a guest TPM — optional, exercised only if you add a TPM device; not required for this Linux guest.
 - `dnsmasq` is listed explicitly because libvirt declares it only as an *optional* dependency (package DB: "required for default NAT/DHCP for guests").
-- libvirt's other NAT optdepend is on **`iptables-nft`** (package DB: "required for default NAT networking"). Core `iptables` (1.8.13, verified) *provides* `iptables-nft` — the standalone package was merged into core `iptables` at 1.8.13 — and is present in a standard CachyOS install, so that optdepend is already satisfied. Hence no explicit `libvirt`/`iptables` line is needed.
+- libvirt's other NAT optdepend is on **`iptables-nft`** (package DB: "required for default NAT networking"). Core `iptables` (1.8.13-1, verified) both *provides* and *replaces* `iptables-nft` — the standalone `iptables-nft` package was folded into core `iptables` (nft backend made default) at `iptables` 1.8.11-3, which landed 2026-04-05; the name has pointed at the nft-backed build ever since — and it is present in a standard CachyOS install, so that optdepend is already satisfied. Hence no explicit `libvirt`/`iptables` line is needed.
 
 **Daemon model — socket activation** (CachyOS wiki): enable `libvirtd.socket`, not the service — the daemon starts on first client connection. Enabling `libvirtd.service` as well is only needed for the optional LXC backend.
 
