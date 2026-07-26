@@ -1,6 +1,6 @@
 # CachyOS KVM Configuration — Isolated Linux Guest on a GTR9 Pro Host
 
-**Version:** 6.0.3 · **Date:** 2026-07-05
+**Version:** 6.1.0 · **Date:** 2026-07-26
 
 A comprehensive, risk-ordered procedure for building, containing, and operating
 an isolated CachyOS KVM guest on a Beelink GTR9 Pro, without exposing the
@@ -26,8 +26,8 @@ GPU/kernel-parameter tuning, and hardware-revision handling.
   x86-64-v4), 128 GB LPDDR5X, Radeon 8060S (`gfx1151`). OS base: CachyOS
   (rolling).
 - **Guest:** CachyOS, virtio devices only, systemd-boot layout.
-- **Workload (context only):** `ry-install.fish` — v7.91.0, 4,952 lines,
-  288 functions (rolling; `main` HEAD as of 2026-07-05). Engine: Claude Code
+- **Workload (context only):** `ry-install.fish` — v7.139.0, 4,974 lines,
+  293 functions (rolling; `main` HEAD as of 2026-07-26). Engine: Claude Code
   (native installer).
 
 ## Phase order (safest first)
@@ -66,25 +66,29 @@ recovery reference.
 - `CHANGELOG.md` — version history, newest first
 - `README.md` — this file
 
-## Verification
+## Sources
 
 All shell blocks pass `bash -n` and `shellcheck`; the containment network XML
-passes `xmllint`. Every factual claim was re-verified line-by-line against live
-sources on 2026-07-05:
+passes `xmllint`. Factual claims are checked against upstream sources, last
+on 2026-07-26:
 
 - **Package versions** against the Arch package database (`qemu-full` 11.0.2,
   `libvirt` 12.5.0, `virt-manager` 5.1.0, `edk2-ovmf` 202605, `swtpm` 0.10.1,
-  `dnsmasq` 2.93, `iptables` 1.8.13, `diffutils` 3.12).
-- **Dependency chains and optdepends** against the same DB (the
+  `dnsmasq` 2.93, `iptables` 1:1.8.13, `diffutils` 3.12).
+- **Dependency chains and optdepends** against the same database (the
   `qemu-full → qemu-desktop → qemu-base → qemu-system-x86 → edk2-ovmf` firmware
   chain; `virt-manager` pulling `libvirt` via `virt-install`/`libvirt-glib`;
   libvirt's `dnsmasq` and `iptables-nft` NAT optdepends; core `iptables`
-  providing and replacing `iptables-nft` since the 1.8.11-3 merge).
+  providing and replacing `iptables-nft` since the 1:1.8.11-3 overhaul).
 - **The OVMF firmware path** `/usr/share/edk2/x64/OVMF_CODE.4m.fd` against the
   `edk2-ovmf` file list and the ArchWiki.
+- **Disk and snapshot validation rules** against libvirt 12.5.0 — the
+  `io='native'` cache-mode requirement, and the `--quiesce`/`--live` flag
+  constraints on `snapshot-create-as`.
 - **The dnsmasq XML namespace** (available since libvirt 5.6.0, no support
   guarantees) against the libvirt network-XML reference.
+- **The `/dev/kvm` device mode** against the systemd udev defaults.
 - **Claude Code** native-installer command, install path, authentication, and
-  the `api.anthropic.com` startup dependency against the official setup docs.
+  permission-flag semantics against the official setup docs.
 - **Target repository stats** against `main` HEAD: `ry-install.fish` measures
-  4,952 lines / 288 functions / v7.91.0.
+  4,974 lines / 293 functions / v7.139.0.

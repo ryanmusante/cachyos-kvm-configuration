@@ -1,12 +1,12 @@
 # CACHYOS KVM CONFIGURATION — ISOLATED LINUX GUEST ON A GTR9 PRO HOST
 
-**Version:** 6.0.3 · **Date:** 2026-07-05 · **Purpose:** Comprehensive, risk-ordered procedure for building, containing, and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro. This revision reorients the document around **KVM configuration** as the subject; the guest's downstream use (auditing the Fish installer `ryanmusante/ry-install` with Claude Code) is retained only as the workload the environment is sized and contained for. Every factual claim re-verified line-by-line against live sources on 2026-07-05 — Arch package DB (package versions, dependency chains, optdepends, OVMF file path, the `iptables-nft`→`iptables` merge version), libvirt upstream (dnsmasq XML namespace), CachyOS wiki/FAQ (host stack, mirror ranking), Claude Code official docs (native installer, permission flag, endpoints), and target repo HEAD (line/function counts). This pass corrected one dependency-provenance error carried since v4.2.0 (the `iptables-nft` merge was attributed to the current version 1.8.13 rather than its actual landing at 1.8.11-3) and reconciled a stale internal verification date. All fenced blocks syntax-checked (`bash -n`, `shellcheck`, `xmllint`).
+**Version:** 6.1.0 · **Date:** 2026-07-26 · **Purpose:** Comprehensive, risk-ordered procedure for building, containing, and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro. The document's subject is **KVM configuration**; the guest's downstream use (reviewing the Fish installer `ryanmusante/ry-install` with Claude Code) is retained only as the workload the environment is sized and contained for. Sources checked on 2026-07-26 — Arch package DB (versions, dependency chains, optdepends, OVMF file path, the `iptables-nft`→`iptables` merge), libvirt 12.5.0 upstream (dnsmasq XML namespace, disk and snapshot validation rules), systemd (`/dev/kvm` mode), CachyOS wiki/FAQ (host stack, mirror ranking), Claude Code official docs (native installer, permission flag, endpoints), and target repo HEAD (line/function counts). All fenced blocks syntax-checked (`bash -n`, `shellcheck`, `xmllint`).
 
 **Host hardware base:** Beelink GTR9 Pro — AMD Ryzen AI Max+ 395 (16 C / 32 T Zen 5, x86-64-v4), 128 GB LPDDR5X, Radeon 8060S (RDNA 3.5, `gfx1151`). OS base: CachyOS (rolling). The guest sees only virtio devices; all sizing below derives from these figures.
 
 **Guest target:** CachyOS, virtio-only, systemd-boot layout.
 
-**Intended workload (context only):** static and dynamic review of `ry-install.fish` — **v7.91.0 (2026-07-04) · 4,952 lines · 288 functions** (single script, rolling; figures reflect `main` HEAD as of 2026-07-05, verified via raw.githubusercontent.com — treat as an approximate rolling pin, since a single upstream push moves them). The workload dictates two configuration constraints and nothing more: enough vCPU/RAM to run an editor plus an AI agent comfortably (P3), and a containment posture that keeps Anthropic endpoints reachable while cutting the guest off from the source host after clone (P6). Everything else in this document is general-purpose KVM configuration.
+**Intended workload (context only):** static and dynamic review of `ry-install.fish` — **v7.139.0 · 4,974 lines · 293 functions** (single script, rolling; figures reflect `main` HEAD as of 2026-07-26, read via raw.githubusercontent.com — treat as an approximate rolling pin, since a single upstream push moves them). The workload dictates two configuration constraints and nothing more: enough vCPU/RAM to run an editor plus an AI agent comfortably (P3), and a containment posture that keeps Anthropic endpoints reachable while cutting the guest off from the source host after clone (P6). Everything else in this document is general-purpose KVM configuration.
 
 ---
 
@@ -89,13 +89,13 @@ $ sudo virsh net-autostart default
 $ sudo usermod -aG libvirt "$USER"
 ```
 
-**Package set and dependency provenance** (Arch package DB, verified 2026-07-05 — `qemu-full` 11.0.2, `libvirt` 12.5.0, `virt-manager` 5.1.0, `edk2-ovmf` 202605, `swtpm` 0.10.1, `dnsmasq` 2.93):
+**Package set and dependency provenance** (Arch package DB, checked 2026-07-26 — `qemu-full` 11.0.2, `libvirt` 12.5.0, `virt-manager` 5.1.0, `edk2-ovmf` 202605, `swtpm` 0.10.1, `dnsmasq` 2.93):
 
 - `libvirt` is pulled by **`virt-manager`** (via `virt-install` → `libvirt-python`, and `libvirt-glib`), *not* by `qemu-full`.
 - `qemu-full` pulls **`edk2-ovmf`** transitively (via `qemu-desktop` → `qemu-base` → `qemu-system-x86`) for UEFI guest firmware.
 - `swtpm` supplies a guest TPM — optional, exercised only if you add a TPM device; not required for this Linux guest.
 - `dnsmasq` is listed explicitly because libvirt declares it only as an *optional* dependency (package DB: "required for default NAT/DHCP for guests").
-- libvirt's other NAT optdepend is on **`iptables-nft`** (package DB: "required for default NAT networking"). Core `iptables` (1.8.13-1, verified) both *provides* and *replaces* `iptables-nft` — the standalone `iptables-nft` package was folded into core `iptables` (nft backend made default) at `iptables` 1.8.11-3, which landed 2026-04-05; the name has pointed at the nft-backed build ever since — and it is present in a standard CachyOS install, so that optdepend is already satisfied. Hence no explicit `libvirt`/`iptables` line is needed.
+- libvirt's other NAT optdepend is on **`iptables-nft`** (package DB: "required for default NAT networking"). Core `iptables` (`1:1.8.13-1`, note the epoch) both *provides* and *replaces* `iptables-nft`: the packaging was overhauled at `1:1.8.11-3` (released 2025-10-03), which renamed the legacy build to `iptables-legacy` and pointed the `iptables` name at the nft-backed build; `1:1.8.11-4` (2025-10-04) refined the `replaces` path so existing rule files are not renamed to `.pacsave`. `iptables` is present in a standard CachyOS install, so that optdepend is already satisfied and no explicit `libvirt`/`iptables` line is needed.
 
 **Daemon model — socket activation** (CachyOS wiki): enable `libvirtd.socket`, not the service — the daemon starts on first client connection. Enabling `libvirtd.service` as well is only needed for the optional LXC backend.
 
@@ -117,7 +117,7 @@ $ sudo usermod -aG libvirt "$USER"
 $ systemctl is-active libvirtd.socket
 $ virsh -c qemu:///system version
 $ virsh net-list --all              # default → active, autostart yes
-$ ls -l /dev/kvm                    # crw-rw----+ root kvm
+$ ls -l /dev/kvm                    # crw-rw-rw- root kvm
 ```
 
 **Rollback:**
@@ -125,7 +125,7 @@ $ ls -l /dev/kvm                    # crw-rw----+ root kvm
 ```
 $ sudo systemctl disable --now libvirtd.socket
 $ sudo gpasswd -d "$USER" libvirt
-$ sudo rm /etc/libvirt/network.conf
+$ sudo sed -i '/^firewall_backend = "iptables"$/d' /etc/libvirt/network.conf
 $ sudo pacman -Rns qemu-full virt-manager swtpm dnsmasq
 ```
 
@@ -154,9 +154,9 @@ The core of the KVM configuration. Every value below is chosen for a modern Linu
 ║ Memory           ║ 32 GiB fixed (host has 128; leave         ║
 ║                  ║ ballooning at default virtio-balloon)     ║
 ║ Disk bus         ║ VirtIO SCSI (virtio-scsi), not virtio-blk ║
-║                  ║ — SCSI carries the discard/unmap path     ║
+║                  ║ — multi-queue, richer topology control    ║
 ║ Disk cache/IO    ║ cache=writeback · discard=unmap ·         ║
-║                  ║ io=native · 60 GiB qcow2                   ║
+║                  ║ io=threads · 60 GiB qcow2                 ║
 ║ NIC              ║ virtio · network: default (NAT)           ║
 ║ Video            ║ virtio-gpu (no host GPU passthrough)      ║
 ║ Guest agent      ║ virtio channel org.qemu.guest_agent.0     ║
@@ -167,7 +167,9 @@ The core of the KVM configuration. Every value below is chosen for a modern Linu
 
 **Wizard procedure:** in virt-manager's new-VM wizard, tick **Customize configuration before install** on the final step (CachyOS wiki) — that is where you confirm Q35 + UEFI and set the CPU/disk/NIC values above. If the wizard doesn't autodetect the CachyOS ISO, untick autodetection and select **Arch Linux** as the OS type (CachyOS wiki); this only tunes virtio defaults and has no runtime effect beyond that.
 
-**Why these disk settings:** `virtio-scsi` (not `virtio-blk`) is chosen because the SCSI path carries `discard=unmap`, which lets the guest return freed blocks so the qcow2 stays thin. `cache=writeback` favors throughput and is safe here because the workload is disposable and snapshot-gated (P8); `io=native` pairs with a preallocated or raw-backed image but is fine on qcow2 for this profile. For a guest holding data you cannot lose, prefer `cache=none` + `io=native` and accept lower throughput.
+**Why these disk settings:** both `virtio-scsi` and `virtio-blk` support `discard=unmap` (virtio-blk since QEMU 4.0), so the choice is not about trim; `virtio-scsi` is preferred for its multi-queue path and for accepting more than one disk per controller. `discard=unmap` lets the guest return freed blocks so the qcow2 stays thin. `cache=writeback` favors throughput and is safe here because the workload is disposable and snapshot-gated (P8).
+
+**Cache and AIO must be paired correctly.** libvirt rejects `io='native'` unless the cache mode is `none` or `directsync` — a domain defined with `cache=writeback` + `io=native` will not start. Valid pairings: `cache=writeback` + `io=threads` (shipped above), `cache=none` + `io=native` (lower throughput, preferred for a guest holding data you cannot lose), or `io=io_uring` with any cache mode on a QEMU built against liburing.
 
 **Why host-passthrough:** it forwards the Zen 5 feature bits (x86-64-v4: AVX-512, etc.) so guest CachyOS selects the same micro-optimized package repos it would on bare metal. The tradeoff is migration: a host-passthrough guest is not portable to a different CPU. That is irrelevant for a single-host sandbox.
 
@@ -227,10 +229,9 @@ Run **before** P6 containment (the clone needs the source host reachable). This 
 $ sudo pacman -S --needed code shellcheck ripgrep fd \
       nvme-cli lm_sensors iw
 $ git clone https://github.com/ryanmusante/ry-install
-$ cd ry-install
-$ git config --local user.name  "Sandbox"
-$ git config --local user.email "sandbox@kvm.internal"
-$ git switch -c sandbox
+$ git -C ry-install config --local user.name  "Sandbox"
+$ git -C ry-install config --local user.email "sandbox@kvm.internal"
+$ git -C ry-install switch -c sandbox
 ```
 
 `code`, `shellcheck`, `ripgrep`, `fd` are the review toolchain; `nvme-cli`/`lm_sensors`/`iw` mirror the target script's own package set and runtime probes so its real code branches execute instead of "command absent" fallbacks. `main` HEAD is the working baseline; the `sandbox` branch isolates any edits. Node/npm are intentionally absent — the Claude Code native installer needs neither.
@@ -326,15 +327,29 @@ $ virsh dominfo cachyos-guest            # confirm Autostart: enable
 
 ## P8 — SNAPSHOT BASELINE — RISK: NONE (PROTECTIVE)
 
-On the **host**, before any live execution of a workload inside the guest, take a clean baseline you can revert to:
+On the **host**, before any live execution of a workload inside the guest, take a clean baseline you can revert to. This snapshot is the single most important protective step: everything the workload does afterward is reversible to this point (P9).
+
+**Preferred — powered-off internal snapshot.** Captures the whole disk state in the qcow2 itself and reverts with no external files to track:
 
 ```
+$ virsh shutdown cachyos-guest
 $ virsh snapshot-create-as --domain cachyos-guest --name pre-run-baseline \
-      --description "clean configured guest, pre-workload" --live --quiesce
+      --description "clean configured guest, pre-workload"
 $ virsh snapshot-list cachyos-guest
 ```
 
-With `qemu-guest-agent` running (P4), `--live --quiesce` gives a consistent snapshot without shutdown; the agent flushes and freezes guest filesystems for the instant of capture. Without the agent, snapshot a powered-off guest instead (drop `--live --quiesce` and stop the domain first). This snapshot is the single most important protective step: everything the workload does afterward is reversible to this point (P9).
+**Alternative — running guest, quiesced disk-only snapshot.** With `qemu-guest-agent` running (P4), the agent flushes and freezes guest filesystems for the instant of capture, so no shutdown is needed:
+
+```
+$ virsh snapshot-create-as --domain cachyos-guest --name pre-run-baseline \
+      --description "clean configured guest, pre-workload" \
+      --disk-only --quiesce --atomic
+```
+
+**Flag constraints — both are enforced by libvirt, not advisory:**
+- `--quiesce` requires `--disk-only`; passing it alone is refused, and it fails outright if the guest agent is absent.
+- `--live` is only accepted for a full-system *external* snapshot, i.e. together with `--memspec`. It cannot be combined with the internal snapshot above.
+- The disk-only form creates an external overlay and saves no VM memory state; reverting and deleting external snapshots is supported from libvirt 9.9.0 onward.
 
 ---
 
@@ -365,4 +380,4 @@ With `qemu-guest-agent` running (P4), `--live --quiesce` gives a consistent snap
 
 The environment above is general-purpose; it was sized and contained for a specific job, recorded here so the P3/P6 choices have context. This is not part of the KVM configuration and can be ignored if you repurpose the guest.
 
-The guest is used to review `ry-install.fish` (4,952 lines) with Claude Code, reading the checkout directly rather than pasting the file — reference paths and line ranges. A single review sweep looks at variable scoping (`set -l` discipline in nested blocks), Fish 1-based array/index semantics, error propagation (`$status` / `; or return 1`, `argparse` flag definitions against the Fish 3.6+ compat floor), and static cross-referencing of the script's kernel-parameter assignments against `gfx1151` / mainline `amdgpu` definitions. The last of these is **static-only** in this guest — there is no amdgpu device, so any functional sysfs validation is bare-metal-only and outside this environment's remit. None of that changes the guest's configuration; it only justifies the vCPU/RAM sizing (P3) and the "reach Anthropic, not GitHub" containment (P6).
+The guest is used to review `ry-install.fish` (4,974 lines) with Claude Code, reading the checkout directly rather than pasting the file — reference paths and line ranges. A single review sweep looks at variable scoping (`set -l` discipline in nested blocks), Fish 1-based array/index semantics, error propagation (`$status` / `; or return 1`, `argparse` flag definitions against the Fish 3.6+ compat floor), and static cross-referencing of the script's kernel-parameter assignments against `gfx1151` / mainline `amdgpu` definitions. The last of these is **static-only** in this guest — there is no amdgpu device, so any functional sysfs validation is bare-metal-only and outside this environment's remit. None of that changes the guest's configuration; it only justifies the vCPU/RAM sizing (P3) and the "reach Anthropic, not GitHub" containment (P6).
