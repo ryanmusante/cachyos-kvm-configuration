@@ -1,6 +1,6 @@
 # CachyOS KVM Configuration — Isolated Linux Guest on a GTR9 Pro Host
 
-**Version:** 6.1.0 · **Date:** 2026-07-26
+**Version:** 6.3.0 · **Date:** 2026-08-30
 
 A comprehensive, risk-ordered procedure for building, containing, and operating
 an isolated CachyOS KVM guest on a Beelink GTR9 Pro, without exposing the
@@ -15,10 +15,11 @@ guest agent), guest-side virtio integration, network containment,
 persistence/autostart, and snapshot/recovery.
 
 The guest's downstream use — reviewing the Fish installer
-`ryanmusante/ry-install` with Claude Code — is retained only as the workload
-the environment is **sized and contained for**, and is confined to a single
-reference section. It deliberately excludes host firmware remediation,
-GPU/kernel-parameter tuning, and hardware-revision handling.
+`ryanmusante/ry-install` and its verifier `ryanmusante/ry-verify` with Claude
+Code — is retained only as the workload the environment is **sized and
+contained for**, and is confined to a single reference section. The artifact
+deliberately excludes host firmware remediation, GPU/kernel-parameter tuning,
+and hardware-revision handling.
 
 ## Host and guest
 
@@ -26,8 +27,9 @@ GPU/kernel-parameter tuning, and hardware-revision handling.
   x86-64-v4), 128 GB LPDDR5X, Radeon 8060S (`gfx1151`). OS base: CachyOS
   (rolling).
 - **Guest:** CachyOS, virtio devices only, systemd-boot layout.
-- **Workload (context only):** `ry-install.fish` — v7.139.0, 4,974 lines,
-  293 functions (rolling; `main` HEAD as of 2026-07-26). Engine: Claude Code
+- **Workload (context only):** two repositories at v7.195.0 — `ry-install.fish`
+  (3,413 lines, 207 functions) and `ry-verify.fish` (2,591 lines, 170
+  functions), rolling, `main` HEAD as of 2026-08-30. Engine: Claude Code
   (native installer).
 
 ## Phase order (safest first)
@@ -56,7 +58,7 @@ recovery reference.
 2. Execute phases in order. Do not skip the snapshot (P8) before the first
    live run of any workload inside the guest.
 3. Apply network containment (P6) only *after* provisioning the workspace
-   (P5) — the clone needs GitHub reachable.
+   (P5) — the clones need GitHub reachable.
 4. Keep host and guest on a current rolling kernel; do not pin LTS for the
    host role.
 
@@ -70,11 +72,11 @@ recovery reference.
 
 All shell blocks pass `bash -n` and `shellcheck`; the containment network XML
 passes `xmllint`. Factual claims are checked against upstream sources, last
-on 2026-07-26:
+on 2026-08-30:
 
-- **Package versions** against the Arch package database (`qemu-full` 11.0.2,
-  `libvirt` 12.5.0, `virt-manager` 5.1.0, `edk2-ovmf` 202605, `swtpm` 0.10.1,
-  `dnsmasq` 2.93, `iptables` 1:1.8.13, `diffutils` 3.12).
+- **Package versions** against the Arch package database (`qemu-full` 11.1.1,
+  `libvirt` 1:12.6.0, `virt-manager` 5.1.0, `edk2-ovmf` 202608, `swtpm`
+  0.10.1, `dnsmasq` 2.93, `iptables` 1:1.8.13, `diffutils` 3.12).
 - **Dependency chains and optdepends** against the same database (the
   `qemu-full → qemu-desktop → qemu-base → qemu-system-x86 → edk2-ovmf` firmware
   chain; `virt-manager` pulling `libvirt` via `virt-install`/`libvirt-glib`;
@@ -82,13 +84,25 @@ on 2026-07-26:
   providing and replacing `iptables-nft` since the 1:1.8.11-3 overhaul).
 - **The OVMF firmware path** `/usr/share/edk2/x64/OVMF_CODE.4m.fd` against the
   `edk2-ovmf` file list and the ArchWiki.
-- **Disk and snapshot validation rules** against libvirt 12.5.0 — the
-  `io='native'` cache-mode requirement, and the `--quiesce`/`--live` flag
-  constraints on `snapshot-create-as`.
+- **Disk and snapshot validation rules** against libvirt 12.6.0 — the
+  `io='native'` cache-mode requirement, the `--quiesce`/`--live` flag
+  constraints on `snapshot-create-as`, and the release history for external
+  snapshots (deletion from 9.0.0, reverting from 9.9.0).
 - **The dnsmasq XML namespace** (available since libvirt 5.6.0, no support
   guarantees) against the libvirt network-XML reference.
 - **The `/dev/kvm` device mode** against the systemd udev defaults.
-- **Claude Code** native-installer command, install path, authentication, and
-  permission-flag semantics against the official setup docs.
-- **Target repository stats** against `main` HEAD: `ry-install.fish` measures
-  4,974 lines / 293 functions / v7.139.0.
+- **The libvirt default URI** against libvirt 12.6.0 — an unqualified `virsh`
+  probes to `qemu:///system` only for a privileged caller; everyone else gets
+  `qemu:///session`, hence the `uri_default` step in P2.
+- **dnsmasq `address=` semantics** against dnsmasq(8) — matching A and AAAA
+  queries are answered locally and never forwarded.
+- **How `lsblk` reports transport** against util-linux — `TRAN` is set to
+  `virtio` for `vd*` names only, so a virtio-scsi disk shows none.
+- **CachyOS optimized repositories** against the CachyOS wiki — repo
+  selection and the v4/znver4 mirrorlist are a manual `pacman.conf` matter.
+- **Claude Code** native-installer command, launcher path, authentication, and
+  permission-flag semantics against the official setup docs, and the required
+  endpoints against the network-configuration docs.
+- **Target repository stats** against each `main` HEAD: `ry-install.fish`
+  measures 3,413 lines / 207 functions and `ry-verify.fish` 2,591 lines /
+  170 functions, both at v7.195.0.

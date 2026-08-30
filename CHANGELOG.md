@@ -4,6 +4,58 @@ CachyOS KVM Configuration — Changelog
 Newest first. Versioning is MAJOR.MINOR.PATCH.
 Format: - area: imperative summary.
 
+6.3.0 (2026-08-30)
+- P2: set uri_default = "qemu:///system" in the user's libvirt.conf.
+  libvirt probes to qemu:///system only for a privileged caller, so
+  every unqualified virsh in P4 through P9 addressed qemu:///session,
+  where the guest and the default network do not exist
+- P6: fix the containment probe — git push --dry-run aborts locally
+  on a branch with no upstream and never reaches the network, so it
+  proved nothing; use git ls-remote origin
+- P8: bound the shut-off poll at two minutes and confirm the state
+  afterwards, instead of looping forever on a wedged guest
+- P4: glob the SCSI host in the proc_name check — the SATA CD-ROM's
+  AHCI controller can take host0
+- P1: read cachyos.org/rss.xml instead of piping the rendered news page
+  through head, which returns markup rather than headlines
+- P2: make the firewall_backend and uri_default writes idempotent, and
+  remove the uri_default line in rollback
+- P0: point df at the filesystem that will hold the image pool and note
+  the qcow2 is thin-provisioned; correct which module registers /dev/kvm
+- P6: record that an address= domain is never forwarded for AAAA either,
+  so the block does not leak over IPv6; name libvirtd.service explicitly
+- P9: scope the workspace recovery row to either checkout
+
+6.2.0 (2026-08-30)
+- target: resync to the split upstream. ry-install is now two repos —
+  ry-install.fish (3,413 lines / 207 functions) and ry-verify.fish
+  (2,591 lines / 170 functions), both v7.195.0; clone and review both
+- P6: correct the Anthropic endpoint set. Console authentication moved
+  to platform.claude.com, sign-in also reaches claude.com, and the
+  native installer and auto-updater need downloads.claude.ai
+- P6: record the accepted collateral of the GitHub blackhole — Claude
+  Code reads its changelog from raw.githubusercontent.com for
+  /release-notes and the post-update check
+- P4: fix the virtio verification. lsblk sets TRAN to virtio for vd*
+  names only, so the shipped virtio-scsi disk shows an empty transport;
+  check the disk name and the SCSI host proc_name instead
+- P8: poll for shut off after virsh shutdown. The command returns
+  before the domain stops, so the snapshot could capture a running
+  guest instead of the powered-off baseline
+- P8: split the external-snapshot support claim. libvirt gained
+  deletion in 9.0.0 and reverting in 9.9.0, not both in 9.9.0
+- P3: correct the host-passthrough rationale. Passthrough qualifies the
+  guest for the optimized CachyOS repos; selecting v4 or znver4 stays a
+  manual pacman.conf edit against cachyos-v4-mirrorlist
+- P3: restate the 24-vCPU note as a topology (1 socket / 12 cores /
+  2 threads) so it matches the shipped row
+- P4: drop the unsourced mirrorlist path from the rate-mirrors comment
+- P2/header/README: resync package versions — qemu-full 11.1.1,
+  edk2-ovmf 202608, libvirt 1:12.6.0 (record its epoch as well)
+- shell: apply head -n, and drop a pointless grep -E
+- README: attribute the exclusions to the artifact, not to the
+  workload sentence before them
+
 6.1.0 (2026-07-26)
 - P3: fix an invalid disk configuration. libvirt refuses io='native'
   unless the cache mode is none or directsync, so cache=writeback with
