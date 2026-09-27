@@ -4,6 +4,43 @@ CachyOS KVM Configuration — Changelog
 Newest first. Versioning is MAJOR.MINOR.PATCH.
 Format: - area: imperative summary.
 
+6.4.0 (2026-09-27)
+- P7: enable libvirtd.service so the daemon starts at boot; with socket
+  activation alone, domain autostart never fired
+- P7: fix the vcpu pinning example (the count was missing) and pin whole
+  cores; re-enable libvirtd.socket in rollback, since disable cascades
+  through Also=
+- P6: replace the invalid forward mode 'none' with an isolated network
+  or a host egress allowlist
+- P6: tabulate the Anthropic endpoints from the current requirements;
+  record that the GitHub block also stops plugin marketplaces
+- P6: back up the persistent network XML; drop sudo from virsh
+- P5/P8: replace bash-only loops with forms that also run in fish
+- P5: clone into ~/ry-install and ~/ry-verify with git clone -c; move
+  git, diffutils and fish here from P4
+- P4: start the guest agents instead of enabling them; neither unit has
+  install configuration, udev starts both
+- P8: save the domain XML first; bound the wait with timeout; note that
+  the offline snapshot skips the UEFI varstore
+- P9: undefine with --nvram, --snapshots-metadata and
+  --remove-all-storage
+- P2: start the default network now, verify after the re-login, and roll
+  back in reverse order
+- P3: name the domain; correct the Q35, host-passthrough, virtio-scsi
+  and cache rationales; add SPICE clipboard and file-transfer hardening;
+  gate SEV on host support
+- P1: point at cachyos.org/blog; cachyos.org/news serves the home page
+- P0: record the kvm_amd nested=1 default; size against OS-visible
+  memory
+- P2/header/README: resync libvirt 1:12.7.0 and swtpm 0.10.2
+- target: resync to v7.219.0 - ry-install.fish 3,479 lines / 209
+  functions, ry-verify.fish 3,099 / 232; state the counting method
+- structure: sentence-case headings with a risk line per phase; one
+  phase vocabulary across map, headings and README; language-tagged
+  fences without $ prompts, so blocks paste directly; strip CRLF
+- README: add a linked table of contents and requirements
+- CHANGELOG: tag the untagged 4.1.0, 4.0.0 and 3.0.0 bullets
+
 6.3.0 (2026-08-30)
 - P2: set uri_default = "qemu:///system" in the user's libvirt.conf.
   libvirt probes to qemu:///system only for a privileged caller, so
@@ -176,13 +213,13 @@ Format: - area: imperative summary.
   Secure Boot 2023 UEFI CA note
 
 4.1.0 (2026-07-03)
-- remove Appendix A (amdgpu kernel-parameter verdicts, Strix Halo
+- doc: remove Appendix A (amdgpu kernel-parameter verdicts, Strix Halo
   tuning levers, sdboot-manage application)
-- rewrite Pass 4 self-contained, with no appendix dependency
-- relabel the sources appendix and prune appendix-only references
+- doc: rewrite Pass 4 self-contained, with no appendix dependency
+- doc: relabel the sources appendix and prune appendix-only references
 
 4.0.0 (2026-07-03)
-- restructure into risk-rated phases, safest-first ordering
+- structure: restructure into risk-rated phases, safest-first ordering
 - hardware: add GTR9 Pro v1.0 (Intel E610) vs v2.2 (Realtek) revision
   detection; scope firmware remediation to v1.0 units
 - firmware: E610 NVM 1.60 + driver pack 31.2; retain 1.30 as the
@@ -192,10 +229,11 @@ Format: - area: imperative summary.
 - shell: quote "$USER"; all blocks pass bash -n, shellcheck, xmllint
 
 3.0.0 (2026-07-03)
-- merge and deduplicate the two source documents; retarget to GTR9 Pro
-  and CachyOS
-- fix the clone URL, containment ordering, corrupted hostname XML, OVMF
-  path, diffutils package name, dnsmasq service conflict, empty
+- scope: merge and deduplicate the two source documents; retarget to
+  GTR9 Pro and CachyOS
+- doc: fix the clone URL, containment ordering, corrupted hostname XML,
+  OVMF path, diffutils package name, dnsmasq service conflict, empty
   baseline commit, reachability check, and git identity scope
-- replace the npm Claude Code install with the native installer
-- correct target repo stats to v7.87.7 (5,066 lines / 292 functions)
+- doc: replace the npm Claude Code install with the native installer
+- target: correct target repo stats to v7.87.7 (5,066 lines / 292
+  functions)

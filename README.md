@@ -1,66 +1,54 @@
 # CachyOS KVM Configuration — Isolated Linux Guest on a GTR9 Pro Host
 
-**Version:** 6.3.0 · **Date:** 2026-08-30
+**Version:** 6.4.0 · **Date:** 2026-09-27
 
-A comprehensive, risk-ordered procedure for building, containing, and operating
-an isolated CachyOS KVM guest on a Beelink GTR9 Pro, without exposing the
-physical host.
+A risk-ordered procedure for building, containing and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro without exposing the physical host. The procedure lives in [`cachyos-kvm-configuration.md`](cachyos-kvm-configuration.md).
 
 ## Scope
 
-This artifact covers the **KVM configuration** end to end: host prerequisites
-and firmware toggles, the host virtualization stack, the full VM definition
-(chipset, firmware, CPU model, vCPU topology, memory, virtio disk/NIC/GPU/RNG,
-guest agent), guest-side virtio integration, network containment,
-persistence/autostart, and snapshot/recovery.
+The artifact covers **KVM configuration** end to end: host prerequisites and firmware toggles, the host virtualization stack, the full VM definition (chipset, firmware, CPU model, vCPU topology, memory, virtio disk/NIC/GPU/RNG, guest agent), guest-side virtio integration, network containment, persistence and autostart, and snapshot/recovery.
 
-The guest's downstream use — reviewing the Fish installer
-`ryanmusante/ry-install` and its verifier `ryanmusante/ry-verify` with Claude
-Code — is retained only as the workload the environment is **sized and
-contained for**, and is confined to a single reference section. The artifact
-deliberately excludes host firmware remediation, GPU/kernel-parameter tuning,
-and hardware-revision handling.
+The guest's downstream use — reviewing the Fish installer `ryanmusante/ry-install` and its verifier `ryanmusante/ry-verify` with Claude Code — is recorded only as the workload the environment is **sized and contained for**, in a single reference section. The artifact deliberately excludes host firmware remediation, GPU/kernel-parameter tuning, and hardware-revision handling.
 
 ## Host and guest
 
-- **Host:** Beelink GTR9 Pro — AMD Ryzen AI Max+ 395 (16 C / 32 T Zen 5,
-  x86-64-v4), 128 GB LPDDR5X, Radeon 8060S (`gfx1151`). OS base: CachyOS
-  (rolling).
+- **Host:** Beelink GTR9 Pro — AMD Ryzen AI Max+ 395 (16 C / 32 T Zen 5, x86-64-v4), 128 GiB LPDDR5X unified memory, Radeon 8060S (`gfx1151`); CachyOS, rolling.
 - **Guest:** CachyOS, virtio devices only, systemd-boot layout.
-- **Workload (context only):** two repositories at v7.195.0 — `ry-install.fish`
-  (3,413 lines, 207 functions) and `ry-verify.fish` (2,591 lines, 170
-  functions), rolling, `main` HEAD as of 2026-08-30. Engine: Claude Code
-  (native installer).
+- **Workload (context only):** `ry-install.fish` (3,479 lines, 209 functions) and `ry-verify.fish` (3,099 lines, 232 functions), both v7.219.0 at `main` on 2026-09-27; engine Claude Code (native installer).
 
-## Phase order (safest first)
+## Requirements
 
-Execution order is dependency order. Every mutating phase is preceded by a
-read-only or protective phase and states its rollback before execution.
-P0–P7 are the KVM configuration proper; P8 gates any live workload; P9 is
-recovery reference.
+- A CachyOS host with AMD-V (SVM) enabled in firmware.
+- At least 70 GiB free under `/var/lib` and 32 GiB of RAM to give the guest.
+- The CachyOS ISO for the guest install.
+- For the workload only: a Claude account with Claude Code access (Pro, Max, Team, Enterprise or Console).
 
-| Phase | Action | Risk |
+## Table of contents
+
+Execution order is dependency order; every mutating phase states its rollback in the document before it runs.
+
+| Phase | Section | Risk |
 | --- | --- | --- |
-| P0 | KVM prerequisites (read-only) | none |
-| P1 | Host update hygiene | low |
-| P2 | Host virtualization stack | low |
-| P3 | VM definition (virt-manager) | none to host |
-| P4 | Guest OS + virtio tooling | guest-confined |
-| P5 | Guest workspace preparation | none |
-| P6 | Network containment (keep Anthropic, block GitHub) | low |
-| P7 | Persistence + autostart | low |
-| P8 | Snapshot baseline | none (protective) |
-| P9 | Recovery procedures | reference |
+| P0 | [KVM prerequisites](cachyos-kvm-configuration.md#p0--kvm-prerequisites) | none (read-only) |
+| P1 | [Host update hygiene](cachyos-kvm-configuration.md#p1--host-update-hygiene) | low |
+| P2 | [Host virtualization stack](cachyos-kvm-configuration.md#p2--host-virtualization-stack) | low |
+| P3 | [VM definition](cachyos-kvm-configuration.md#p3--vm-definition) | none |
+| P4 | [Guest OS and virtio integration](cachyos-kvm-configuration.md#p4--guest-os-and-virtio-integration) | guest-only |
+| P5 | [Guest workspace preparation](cachyos-kvm-configuration.md#p5--guest-workspace-preparation) | guest-only |
+| P6 | [Network containment](cachyos-kvm-configuration.md#p6--network-containment) | low |
+| P7 | [Persistence and autostart](cachyos-kvm-configuration.md#p7--persistence-and-autostart) | low |
+| P8 | [Snapshot baseline](cachyos-kvm-configuration.md#p8--snapshot-baseline) | none (protective) |
+| P9 | [Recovery procedures](cachyos-kvm-configuration.md#p9--recovery-procedures) | reference |
+| — | [Intended workload](cachyos-kvm-configuration.md#intended-workload) | reference |
 
 ## Usage
 
 1. Read the document top to bottom once before executing anything.
-2. Execute phases in order. Do not skip the snapshot (P8) before the first
-   live run of any workload inside the guest.
-3. Apply network containment (P6) only *after* provisioning the workspace
-   (P5) — the clones need GitHub reachable.
-4. Keep host and guest on a current rolling kernel; do not pin LTS for the
-   host role.
+2. Execute phases in order and run each verification block before moving on. Do not skip the snapshot (P8) before the first live run of any workload inside the guest.
+3. Apply network containment (P6) only after provisioning the workspace (P5) — the clones need GitHub reachable.
+4. Keep host and guest on a current rolling kernel; do not pin LTS for the host role.
+
+Shell blocks paste unchanged into bash or fish.
 
 ## Files
 
