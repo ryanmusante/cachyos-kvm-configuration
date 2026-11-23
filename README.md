@@ -1,6 +1,6 @@
 # CachyOS KVM Configuration — Isolated Linux Guest on a GTR9 Pro Host
 
-**Version:** 6.4.0 · **Date:** 2026-09-27
+**Version:** 6.5.0 · **Date:** 2026-11-22
 
 A risk-ordered procedure for building, containing and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro without exposing the physical host. The procedure lives in [`cachyos-kvm-configuration.md`](cachyos-kvm-configuration.md).
 
@@ -14,7 +14,7 @@ The guest's downstream use — reviewing the Fish installer `ryanmusante/ry-inst
 
 - **Host:** Beelink GTR9 Pro — AMD Ryzen AI Max+ 395 (16 C / 32 T Zen 5, x86-64-v4), 128 GiB LPDDR5X unified memory, Radeon 8060S (`gfx1151`); CachyOS, rolling.
 - **Guest:** CachyOS, virtio devices only, systemd-boot layout.
-- **Workload (context only):** `ry-install.fish` (3,479 lines, 209 functions) and `ry-verify.fish` (3,099 lines, 232 functions), both v7.219.0 at `main` on 2026-09-27; engine Claude Code (native installer).
+- **Workload (context only):** `ry-install.fish` (3,962 lines, 255 functions) and `ry-verify.fish` (2,881 lines, 193 functions), both v7.302.0 (2026-11-21); engine Claude Code (native installer).
 
 ## Requirements
 
@@ -23,7 +23,7 @@ The guest's downstream use — reviewing the Fish installer `ryanmusante/ry-inst
 - The CachyOS ISO for the guest install.
 - For the workload only: a Claude account with Claude Code access (Pro, Max, Team, Enterprise or Console).
 
-## Table of contents
+## Phases
 
 Execution order is dependency order; every mutating phase states its rollback in the document before it runs.
 

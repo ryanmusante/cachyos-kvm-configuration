@@ -1,239 +1,300 @@
-CachyOS KVM Configuration — Changelog
+Changes for cachyos-kvm-configuration
 =====================================
 
 Newest first. Versioning is MAJOR.MINOR.PATCH.
-Format: - area: imperative summary.
+
+
+6.5.0 (2026-11-22)
+------------------
+
+  - P2: open virbr0 from a libvirt network hook on a ry-install host; its
+    nftables default-deny dropped guest DHCP, DNS and NAT
+  - P5: clone into ~/src; ~/ry-install is the pair's state directory, which
+    a run fills and P9's git clean -fd would empty
+  - P2: give set -gx as the per-shell fish form; set -Ux persists
+  - P0: note that the qcow2 grows past 60 GiB once P8's snapshot exists
+  - workload: re-pin the figures to the 7.302.0 pair
+  - readme: Phases instead of a table of contents; the new figures
+  - changelog: kernel.org layout, ASCII, two blank lines between entries
+
 
 6.4.0 (2026-09-27)
-- P7: enable libvirtd.service so the daemon starts at boot; with socket
-  activation alone, domain autostart never fired
-- P7: fix the vcpu pinning example (the count was missing) and pin whole
-  cores; re-enable libvirtd.socket in rollback, since disable cascades
-  through Also=
-- P6: replace the invalid forward mode 'none' with an isolated network
-  or a host egress allowlist
-- P6: tabulate the Anthropic endpoints from the current requirements;
-  record that the GitHub block also stops plugin marketplaces
-- P6: back up the persistent network XML; drop sudo from virsh
-- P5/P8: replace bash-only loops with forms that also run in fish
-- P5: clone into ~/ry-install and ~/ry-verify with git clone -c; move
-  git, diffutils and fish here from P4
-- P4: start the guest agents instead of enabling them; neither unit has
-  install configuration, udev starts both
-- P8: save the domain XML first; bound the wait with timeout; note that
-  the offline snapshot skips the UEFI varstore
-- P9: undefine with --nvram, --snapshots-metadata and
-  --remove-all-storage
-- P2: start the default network now, verify after the re-login, and roll
-  back in reverse order
-- P3: name the domain; correct the Q35, host-passthrough, virtio-scsi
-  and cache rationales; add SPICE clipboard and file-transfer hardening;
-  gate SEV on host support
-- P1: point at cachyos.org/blog; cachyos.org/news serves the home page
-- P0: record the kvm_amd nested=1 default; size against OS-visible
-  memory
-- P2/header/README: resync libvirt 1:12.7.0 and swtpm 0.10.2
-- target: resync to v7.219.0 - ry-install.fish 3,479 lines / 209
-  functions, ry-verify.fish 3,099 / 232; state the counting method
-- structure: sentence-case headings with a risk line per phase; one
-  phase vocabulary across map, headings and README; language-tagged
-  fences without $ prompts, so blocks paste directly; strip CRLF
-- README: add a linked table of contents and requirements
-- CHANGELOG: tag the untagged 4.1.0, 4.0.0 and 3.0.0 bullets
+------------------
+
+  - P7: enable libvirtd.service so the daemon starts at boot; with socket
+    activation alone, domain autostart never fired
+  - P7: fix the vcpu pinning example (the count was missing) and pin whole
+    cores; re-enable libvirtd.socket in rollback, since disable cascades
+    through Also=
+  - P6: replace the invalid forward mode 'none' with an isolated network or a
+    host egress allowlist
+  - P6: tabulate the Anthropic endpoints from the current requirements; record
+    that the GitHub block also stops plugin marketplaces
+  - P6: back up the persistent network XML; drop sudo from virsh
+  - P5/P8: replace bash-only loops with forms that also run in fish
+  - P5: clone into ~/ry-install and ~/ry-verify with git clone -c; move git,
+    diffutils and fish here from P4
+  - P4: start the guest agents instead of enabling them; neither unit has
+    install configuration, udev starts both
+  - P8: save the domain XML first; bound the wait with timeout; note that the
+    offline snapshot skips the UEFI varstore
+  - P9: undefine with --nvram, --snapshots-metadata and --remove-all-storage
+  - P2: start the default network now, verify after the re-login, and roll
+    back in reverse order
+  - P3: name the domain; correct the Q35, host-passthrough, virtio-scsi and
+    cache rationales; add SPICE clipboard and file-transfer hardening; gate
+    SEV on host support
+  - P1: point at cachyos.org/blog; cachyos.org/news serves the home page
+  - P0: record the kvm_amd nested=1 default; size against OS-visible memory
+  - P2/header/README: resync libvirt 1:12.7.0 and swtpm 0.10.2
+  - target: resync to v7.219.0 - ry-install.fish 3,479 lines / 209 functions,
+    ry-verify.fish 3,099 / 232; state the counting method
+  - structure: sentence-case headings with a risk line per phase; one phase
+    vocabulary across map, headings and README; language-tagged fences without
+    $ prompts, so blocks paste directly; strip CRLF
+  - README: add a linked table of contents and requirements
+  - CHANGELOG: tag the untagged 4.1.0, 4.0.0 and 3.0.0 bullets
+
 
 6.3.0 (2026-08-30)
-- P2: set uri_default = "qemu:///system" in the user's libvirt.conf.
-  libvirt probes to qemu:///system only for a privileged caller, so
-  every unqualified virsh in P4 through P9 addressed qemu:///session,
-  where the guest and the default network do not exist
-- P6: fix the containment probe — git push --dry-run aborts locally
-  on a branch with no upstream and never reaches the network, so it
-  proved nothing; use git ls-remote origin
-- P8: bound the shut-off poll at two minutes and confirm the state
-  afterwards, instead of looping forever on a wedged guest
-- P4: glob the SCSI host in the proc_name check — the SATA CD-ROM's
-  AHCI controller can take host0
-- P1: read cachyos.org/rss.xml instead of piping the rendered news page
-  through head, which returns markup rather than headlines
-- P2: make the firewall_backend and uri_default writes idempotent, and
-  remove the uri_default line in rollback
-- P0: point df at the filesystem that will hold the image pool and note
-  the qcow2 is thin-provisioned; correct which module registers /dev/kvm
-- P6: record that an address= domain is never forwarded for AAAA either,
-  so the block does not leak over IPv6; name libvirtd.service explicitly
-- P9: scope the workspace recovery row to either checkout
+------------------
+
+  - P2: set uri_default = "qemu:///system" in the user's libvirt.conf. libvirt
+    probes to qemu:///system only for a privileged caller, so every
+    unqualified virsh in P4 through P9 addressed qemu:///session, where the
+    guest and the default network do not exist
+  - P6: fix the containment probe -- git push --dry-run aborts locally on a
+    branch with no upstream and never reaches the network, so it proved
+    nothing; use git ls-remote origin
+  - P8: bound the shut-off poll at two minutes and confirm the state
+    afterwards, instead of looping forever on a wedged guest
+  - P4: glob the SCSI host in the proc_name check -- the SATA CD-ROM's AHCI
+    controller can take host0
+  - P1: read cachyos.org/rss.xml instead of piping the rendered news page
+    through head, which returns markup rather than headlines
+  - P2: make the firewall_backend and uri_default writes idempotent, and
+    remove the uri_default line in rollback
+  - P0: point df at the filesystem that will hold the image pool and note the
+    qcow2 is thin-provisioned; correct which module registers /dev/kvm
+  - P6: record that an address= domain is never forwarded for AAAA either, so
+    the block does not leak over IPv6; name libvirtd.service explicitly
+  - P9: scope the workspace recovery row to either checkout
+
 
 6.2.0 (2026-08-30)
-- target: resync to the split upstream. ry-install is now two repos —
-  ry-install.fish (3,413 lines / 207 functions) and ry-verify.fish
-  (2,591 lines / 170 functions), both v7.195.0; clone and review both
-- P6: correct the Anthropic endpoint set. Console authentication moved
-  to platform.claude.com, sign-in also reaches claude.com, and the
-  native installer and auto-updater need downloads.claude.ai
-- P6: record the accepted collateral of the GitHub blackhole — Claude
-  Code reads its changelog from raw.githubusercontent.com for
-  /release-notes and the post-update check
-- P4: fix the virtio verification. lsblk sets TRAN to virtio for vd*
-  names only, so the shipped virtio-scsi disk shows an empty transport;
-  check the disk name and the SCSI host proc_name instead
-- P8: poll for shut off after virsh shutdown. The command returns
-  before the domain stops, so the snapshot could capture a running
-  guest instead of the powered-off baseline
-- P8: split the external-snapshot support claim. libvirt gained
-  deletion in 9.0.0 and reverting in 9.9.0, not both in 9.9.0
-- P3: correct the host-passthrough rationale. Passthrough qualifies the
-  guest for the optimized CachyOS repos; selecting v4 or znver4 stays a
-  manual pacman.conf edit against cachyos-v4-mirrorlist
-- P3: restate the 24-vCPU note as a topology (1 socket / 12 cores /
-  2 threads) so it matches the shipped row
-- P4: drop the unsourced mirrorlist path from the rate-mirrors comment
-- P2/header/README: resync package versions — qemu-full 11.1.1,
-  edk2-ovmf 202608, libvirt 1:12.6.0 (record its epoch as well)
-- shell: apply head -n, and drop a pointless grep -E
-- README: attribute the exclusions to the artifact, not to the
-  workload sentence before them
+------------------
+
+  - target: resync to the split upstream. ry-install is now two repos --
+    ry-install.fish (3,413 lines / 207 functions) and ry-verify.fish (2,591
+    lines / 170 functions), both v7.195.0; clone and review both
+  - P6: correct the Anthropic endpoint set. Console authentication moved to
+    platform.claude.com, sign-in also reaches claude.com, and the native
+    installer and auto-updater need downloads.claude.ai
+  - P6: record the accepted collateral of the GitHub blackhole -- Claude Code
+    reads its changelog from raw.githubusercontent.com for /release-notes and
+    the post-update check
+  - P4: fix the virtio verification. lsblk sets TRAN to virtio for vd* names
+    only, so the shipped virtio-scsi disk shows an empty transport; check the
+    disk name and the SCSI host proc_name instead
+  - P8: poll for shut off after virsh shutdown. The command returns before the
+    domain stops, so the snapshot could capture a running guest instead of the
+    powered-off baseline
+  - P8: split the external-snapshot support claim. libvirt gained deletion in
+    9.0.0 and reverting in 9.9.0, not both in 9.9.0
+  - P3: correct the host-passthrough rationale. Passthrough qualifies the
+    guest for the optimized CachyOS repos; selecting v4 or znver4 stays a
+    manual pacman.conf edit against cachyos-v4-mirrorlist
+  - P3: restate the 24-vCPU note as a topology (1 socket / 12 cores / 2
+    threads) so it matches the shipped row
+  - P4: drop the unsourced mirrorlist path from the rate-mirrors comment
+  - P2/header/README: resync package versions -- qemu-full 11.1.1, edk2-ovmf
+    202608, libvirt 1:12.6.0 (record its epoch as well)
+  - shell: apply head -n, and drop a pointless grep -E
+  - README: attribute the exclusions to the artifact, not to the workload
+    sentence before them
+
 
 6.1.0 (2026-07-26)
-- P3: fix an invalid disk configuration. libvirt refuses io='native'
-  unless the cache mode is none or directsync, so cache=writeback with
-  io=native never starts; ship io=threads and list the valid pairings
-- P3: correct the disk-bus rationale. virtio-blk has carried
-  discard/unmap since QEMU 4.0; virtio-scsi is kept for its multi-queue
-  path and multi-disk topology, not for trim support
-- P8: fix an invalid snapshot command. --quiesce requires --disk-only,
-  and --live is accepted only for a full-system external snapshot
-  (--memspec). Split into a powered-off internal snapshot (preferred)
-  and a quiesced disk-only alternative for a running guest
-- P2: correct the iptables-nft merge provenance. The packaging overhaul
-  landed in 1:1.8.11-3 (released 2025-10-03) and was refined in
-  1:1.8.11-4; record the epoch on the current 1:1.8.13-1
-- P2: fix the /dev/kvm mode in the verification block. systemd ships
-  dev-kvm-mode 0666, so the node is crw-rw-rw- root kvm
-- P2: fix rollback. /etc/libvirt/network.conf ships with the libvirt
-  package; remove the appended line instead of the file
-- P3: fix a one-character misalignment in the definition table
-- P5: configure the clone with git -C instead of cd, matching the P6
-  verification block and keeping every shell block shellcheck-clean
-- target: resync to ry-install v7.139.0 (4,974 lines / 293 functions)
-- header/README: restate the source stamp for 2026-07-26 and widen the
-  cited scope to libvirt validation rules and systemd
+------------------
+
+  - P3: fix an invalid disk configuration. libvirt refuses io='native' unless
+    the cache mode is none or directsync, so cache=writeback with io=native
+    never starts; ship io=threads and list the valid pairings
+  - P3: correct the disk-bus rationale. virtio-blk has carried discard/unmap
+    since QEMU 4.0; virtio-scsi is kept for its multi-queue path and
+    multi-disk topology, not for trim support
+  - P8: fix an invalid snapshot command. --quiesce requires --disk-only, and
+    --live is accepted only for a full-system external snapshot (--memspec).
+    Split into a powered-off internal snapshot (preferred) and a quiesced
+    disk-only alternative for a running guest
+  - P2: correct the iptables-nft merge provenance. The packaging overhaul
+    landed in 1:1.8.11-3 (released 2025-10-03) and was refined in 1:1.8.11-4;
+    record the epoch on the current 1:1.8.13-1
+  - P2: fix the /dev/kvm mode in the verification block. systemd ships
+    dev-kvm-mode 0666, so the node is crw-rw-rw- root kvm
+  - P2: fix rollback. /etc/libvirt/network.conf ships with the libvirt
+    package; remove the appended line instead of the file
+  - P3: fix a one-character misalignment in the definition table
+  - P5: configure the clone with git -C instead of cd, matching the P6
+    verification block and keeping every shell block shellcheck-clean
+  - target: resync to ry-install v7.139.0 (4,974 lines / 293 functions)
+  - header/README: restate the source stamp for 2026-07-26 and widen the cited
+    scope to libvirt validation rules and systemd
+
 
 6.0.3 (2026-07-05)
-- P2: fix a dependency-provenance error carried since 4.2.0 — the
-  iptables-nft merge was attributed to the current version 1.8.13
-  rather than to its own release
-- P2: reconcile a stale internal verification date
-- header/README: bump the verification stamp
+------------------
+
+  - P2: fix a dependency-provenance error carried since 4.2.0 -- the
+    iptables-nft merge was attributed to the current version 1.8.13 rather
+    than to its own release
+  - P2: reconcile a stale internal verification date
+  - header/README: bump the verification stamp
+
 
 6.0.2 (2026-07-05)
-- verify: re-check every factual claim against live sources. Package
-  versions, dependency chains, optdepends, OVMF path, dnsmasq XML
-  namespace, and service names all confirmed; no corrections required
-- target: pin exact ry-install figures — 4,952 lines / 288 functions at
-  main HEAD (was ~4,950 / ~288); keep the rolling-pin caveat
-- header/README: rewrite the verification stamp
+------------------
+
+  - verify: re-check every factual claim against live sources. Package
+    versions, dependency chains, optdepends, OVMF path, dnsmasq XML namespace,
+    and service names all confirmed; no corrections required
+  - target: pin exact ry-install figures -- 4,952 lines / 288 functions at
+    main HEAD (was ~4,950 / ~288); keep the rolling-pin caveat
+  - header/README: rewrite the verification stamp
+
 
 6.0.1 (2026-07-05)
-- target: resync to ry-install v7.91.0; ~4,950 lines / ~288 functions
-  (was 5,067 / 293 at v7.88.3), expressed against main HEAD
-- P6: fix header cross-reference — containment is P6, not P7
-- header/README: bump verification stamp to 2026-07-05
+------------------
+
+  - target: resync to ry-install v7.91.0; ~4,950 lines / ~288 functions (was
+    5,067 / 293 at v7.88.3), expressed against main HEAD
+  - P6: fix header cross-reference -- containment is P6, not P7
+  - header/README: bump verification stamp to 2026-07-05
+
 
 6.0.0 (2026-07-04)
-- scope: reorient the document around KVM configuration; demote the
-  review workload to a single reference section; rename the artifact to
-  cachyos-kvm-configuration
-- title/purpose: rewrite header and README around a general-purpose
-  isolated Linux guest, sized and contained for that workload
-- P0: add /dev/kvm and CONFIG_KVM_AMD checks and a UEFI toggle table
-  (SVM, IOMMU); note nested virt is a host module param, out of scope
-- P2: add a post-install verification block (socket state, virsh
-  version, net-list, /dev/kvm perms); resync package versions
-- P2: correct the edk2-ovmf chain to include the qemu-base intermediate
-- P2: sharpen the iptables optdepend claim — libvirt's NAT optdepend is
-  on iptables-nft specifically, which core iptables provides
-- P3: expand the definition table with vCPU topology, disk bus
-  rationale, cache/IO modes, and virtio-rng; add optional hardening
-  (TPM/swtpm, SEV); explain the host-passthrough migration tradeoff
-- P4: refocus on virtio integration; move the review toolchain to P5
-- P5: rename to "guest workspace preparation"; gather workload tooling
-  here; keep the Claude Code install
-- P6: former P7 — network containment, reworded around "reach
-  Anthropic, not the source host"
-- P7: new phase — persistence and autostart, with static vcpu pinning
-  as optional tuning
-- P8: former P6 — snapshot baseline promoted after persistence; add
-  --description and snapshot-list; rename to pre-run-baseline
-- P9: add "autostart wedged" and "whole environment suspect" rows
-- target: resync to ry-install v7.88.3 (5,067 lines / 293 functions)
+------------------
+
+  - scope: reorient the document around KVM configuration; demote the review
+    workload to a single reference section; rename the artifact to
+    cachyos-kvm-configuration
+  - title/purpose: rewrite header and README around a general-purpose isolated
+    Linux guest, sized and contained for that workload
+  - P0: add /dev/kvm and CONFIG_KVM_AMD checks and a UEFI toggle table (SVM,
+    IOMMU); note nested virt is a host module param, out of scope
+  - P2: add a post-install verification block (socket state, virsh version,
+    net-list, /dev/kvm perms); resync package versions
+  - P2: correct the edk2-ovmf chain to include the qemu-base intermediate
+  - P2: sharpen the iptables optdepend claim -- libvirt's NAT optdepend is on
+    iptables-nft specifically, which core iptables provides
+  - P3: expand the definition table with vCPU topology, disk bus rationale,
+    cache/IO modes, and virtio-rng; add optional hardening (TPM/swtpm, SEV);
+    explain the host-passthrough migration tradeoff
+  - P4: refocus on virtio integration; move the review toolchain to P5
+  - P5: rename to "guest workspace preparation"; gather workload tooling here;
+    keep the Claude Code install
+  - P6: former P7 -- network containment, reworded around "reach Anthropic,
+    not the source host"
+  - P7: new phase -- persistence and autostart, with static vcpu pinning as
+    optional tuning
+  - P8: former P6 -- snapshot baseline promoted after persistence; add
+    --description and snapshot-list; rename to pre-run-baseline
+  - P9: add "autostart wedged" and "whole environment suspect" rows
+  - target: resync to ry-install v7.88.3 (5,067 lines / 293 functions)
+
 
 5.2.1 (2026-07-03)
-- target: resync to ry-install v7.88.2 (counts unchanged)
-- P4: confirm cachyos-rate-mirrors against the CachyOS FAQ and annotate
-  it with its documented behaviour
+------------------
+
+  - target: resync to ry-install v7.88.2 (counts unchanged)
+  - P4: confirm cachyos-rate-mirrors against the CachyOS FAQ and annotate it
+    with its documented behavior
+
 
 5.2.0 (2026-07-03)
-- P2: correct dependency provenance — libvirt is pulled by virt-manager
-  (via virt-install/libvirt-glib), not by qemu-full; qemu-full pulls
-  edk2-ovmf via qemu-system-x86
-- P2: add a ufw route allow note for hosts running ufw
-- P3: add the OS-autodetect fallback (Arch Linux for the CachyOS ISO)
+------------------
+
+  - P2: correct dependency provenance -- libvirt is pulled by virt-manager
+    (via virt-install/libvirt-glib), not by qemu-full; qemu-full pulls
+    edk2-ovmf via qemu-system-x86
+  - P2: add a ufw route allow note for hosts running ufw
+  - P3: add the OS-autodetect fallback (Arch Linux for the CachyOS ISO)
+
 
 5.1.0 (2026-07-03)
-- P2: reconcile the host stack with the CachyOS virtualization wiki —
-  enable libvirtd.socket, write firewall_backend = "iptables", add
-  virsh net-autostart default, and set the package set
-- P3: add the Q35 chipset row and the customize-before-install step
+------------------
+
+  - P2: reconcile the host stack with the CachyOS virtualization wiki --
+    enable libvirtd.socket, write firewall_backend = "iptables", add virsh
+    net-autostart default, and set the package set
+  - P3: add the Q35 chipset row and the customize-before-install step
+
 
 5.0.1 (2026-07-03)
-- P4: fix a stale cross-reference for quiesced snapshots
-- P4: drop nodejs/npm — the native Claude Code installer needs neither
-- P4: justify retained nvme-cli/lm_sensors/iw against the target
-  script's own package set and runtime probes
-- P3: remove a dangling version-lineage note; normalize P0/P9 headings
+------------------
+
+  - P4: fix a stale cross-reference for quiesced snapshots
+  - P4: drop nodejs/npm -- the native Claude Code installer needs neither
+  - P4: justify retained nvme-cli/lm_sensors/iw against the target script's
+    own package set and runtime probes
+  - P3: remove a dangling version-lineage note; normalize P0/P9 headings
+
 
 5.0.0 (2026-07-03)
-- scope: remove firmware remediation and hardware-revision detection;
-  reduce scope to the KVM guest environment only
-- P0: add read-only KVM prerequisites (AMD-V, kernel currency,
-  disk/RAM headroom)
-- structure: renumber phases to P0-P9; rebuild the phase map and
-  recovery matrix; fix cross-references
-- header: retain a one-line GTR9 Pro hardware base as the sizing basis
+------------------
+
+  - scope: remove firmware remediation and hardware-revision detection; reduce
+    scope to the KVM guest environment only
+  - P0: add read-only KVM prerequisites (AMD-V, kernel currency, disk/RAM
+    headroom)
+  - structure: renumber phases to P0-P9; rebuild the phase map and recovery
+    matrix; fix cross-references
+  - header: retain a one-line GTR9 Pro hardware base as the sizing basis
+
 
 4.2.0 (2026-07-03)
-- doc: remove the embedded changelog and sources appendix; retain
-  inline source notes
-- target: resync to v7.88.1 (5,067 lines / 293 functions)
-- P2: switch to core iptables; clarify libvirt-group vs kvm-group
-- P4: reframe the Claude Code native installer as primary; document
-  --dangerously-skip-permissions as equivalent to --permission-mode
-  bypassPermissions, and that it refuses to run as root
-- firmware: update the Intel envelope to 31.2.1 / ixgbe 6.4.4; add the
-  Secure Boot 2023 UEFI CA note
+------------------
+
+  - doc: remove the embedded changelog and sources appendix; retain inline
+    source notes
+  - target: resync to v7.88.1 (5,067 lines / 293 functions)
+  - P2: switch to core iptables; clarify libvirt-group vs kvm-group
+  - P4: reframe the Claude Code native installer as primary; document
+    --dangerously-skip-permissions as equivalent to --permission-mode
+    bypassPermissions, and that it refuses to run as root
+  - firmware: update the Intel envelope to 31.2.1 / ixgbe 6.4.4; add the
+    Secure Boot 2023 UEFI CA note
+
 
 4.1.0 (2026-07-03)
-- doc: remove Appendix A (amdgpu kernel-parameter verdicts, Strix Halo
-  tuning levers, sdboot-manage application)
-- doc: rewrite Pass 4 self-contained, with no appendix dependency
-- doc: relabel the sources appendix and prune appendix-only references
+------------------
+
+  - doc: remove Appendix A (amdgpu kernel-parameter verdicts, Strix Halo
+    tuning levers, sdboot-manage application)
+  - doc: rewrite Pass 4 self-contained, with no appendix dependency
+  - doc: relabel the sources appendix and prune appendix-only references
+
 
 4.0.0 (2026-07-03)
-- structure: restructure into risk-rated phases, safest-first ordering
-- hardware: add GTR9 Pro v1.0 (Intel E610) vs v2.2 (Realtek) revision
-  detection; scope firmware remediation to v1.0 units
-- firmware: E610 NVM 1.60 + driver pack 31.2; retain 1.30 as the
-  validated-fix floor; add the EFI flash method and ethtool checks
-- containment: add the net XML backup step; document the net-update
-  limitation and the tap-detach / libvirtd-restart requirement
-- shell: quote "$USER"; all blocks pass bash -n, shellcheck, xmllint
+------------------
+
+  - structure: restructure into risk-rated phases, safest-first ordering
+  - hardware: add GTR9 Pro v1.0 (Intel E610) vs v2.2 (Realtek) revision
+    detection; scope firmware remediation to v1.0 units
+  - firmware: E610 NVM 1.60 + driver pack 31.2; retain 1.30 as the
+    validated-fix floor; add the EFI flash method and ethtool checks
+  - containment: add the net XML backup step; document the net-update
+    limitation and the tap-detach / libvirtd-restart requirement
+  - shell: quote "$USER"; all blocks pass bash -n, shellcheck, xmllint
+
 
 3.0.0 (2026-07-03)
-- scope: merge and deduplicate the two source documents; retarget to
-  GTR9 Pro and CachyOS
-- doc: fix the clone URL, containment ordering, corrupted hostname XML,
-  OVMF path, diffutils package name, dnsmasq service conflict, empty
-  baseline commit, reachability check, and git identity scope
-- doc: replace the npm Claude Code install with the native installer
-- target: correct target repo stats to v7.87.7 (5,066 lines / 292
-  functions)
+------------------
+
+  - scope: merge and deduplicate the two source documents; retarget to GTR9
+    Pro and CachyOS
+  - doc: fix the clone URL, containment ordering, corrupted hostname XML, OVMF
+    path, diffutils package name, dnsmasq service conflict, empty baseline
+    commit, reachability check, and git identity scope
+  - doc: replace the npm Claude Code install with the native installer
+  - target: correct target repo stats to v7.87.7 (5,066 lines / 292 functions)

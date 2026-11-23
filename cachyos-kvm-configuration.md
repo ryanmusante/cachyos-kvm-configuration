@@ -1,6 +1,6 @@
 # CachyOS KVM Configuration — Isolated Linux Guest on a GTR9 Pro Host
 
-**Version:** 6.4.0 · **Date:** 2026-09-27
+**Version:** 6.5.0 · **Date:** 2026-11-22
 
 A risk-ordered procedure for building, containing and operating an isolated CachyOS KVM guest on a Beelink GTR9 Pro without exposing the physical host. The subject is **KVM configuration**; the guest's workload appears only as the reason for its sizing and containment.
 
@@ -10,7 +10,7 @@ A risk-ordered procedure for building, containing and operating an isolated Cach
 
 **Conventions:** every shell block pastes unchanged into bash or fish (the CachyOS default shell) and passes `bash -n`, `shellcheck` and `fish --no-execute`; XML blocks pass `xmllint`. Once P2 is done, `virsh` without `-c` addresses `qemu:///system`.
 
-**Sources** (checked 2026-09-27): Arch package database (versions, dependency chains, optdepends, file lists, unit files); libvirt 12.7.0 source and documentation (daemon activation, default-URI probing, network forward modes, dnsmasq namespace, disk validation, SPICE agent features, snapshot and undefine rules); QEMU documentation and source (cache modes, virtio queue defaults); Linux 7.2 (`/dev/kvm` registration, `kvm_amd` defaults); systemd (`/dev/kvm` mode); util-linux (`lsblk` transport); dnsmasq(8) (`address=`); CachyOS wiki and FAQ (host stack, VM wizard, mirror ranking, optimized repositories); Claude Code documentation (setup, network access requirements, permission modes); the two workload repositories' `main`.
+**Sources** (checked 2026-09-27; network hooks 2026-11-13, the workload repositories 2026-11-22): Arch package database (versions, dependency chains, optdepends, file lists, unit files); libvirt 12.7.0 source and documentation (daemon activation, default-URI probing, network forward modes, dnsmasq namespace, disk validation, SPICE agent features, snapshot and undefine rules, network hooks); QEMU documentation and source (cache modes, virtio queue defaults); Linux 7.2 (`/dev/kvm` registration, `kvm_amd` defaults); systemd (`/dev/kvm` mode); util-linux (`lsblk` transport); dnsmasq(8) (`address=`); CachyOS wiki and FAQ (host stack, VM wizard, mirror ranking, optimized repositories); Claude Code documentation (setup, network access requirements, permission modes); the two workload repositories' `main`.
 
 ---
 
@@ -74,7 +74,7 @@ Expect:
 - `/dev/kvm` present — `kvm_amd` registers it through KVM's `kvm_init()` as it loads.
 - `CONFIG_KVM_AMD` set to `y` or `m`.
 - A current CachyOS kernel and `linux-firmware`.
-- At least 70 GiB free where `/var/lib/libvirt/images` will live — the 60 GiB qcow2 is thin-provisioned and grows toward that ceiling — plus room for the install ISO.
+- At least 70 GiB free where `/var/lib/libvirt/images` will live, plus room for the install ISO. The 60 GiB qcow2 is thin-provisioned; once P8's internal snapshot exists it grows past 60 GiB as the guest rewrites data, so keep headroom or delete stale snapshots (`virsh snapshot-delete`).
 - A `free -h` total comfortably above the 32 GiB guest. The OS sees 128 GiB minus the BIOS UMA carveout, and host GPU work (GTT) draws on the same pool.
 
 Two firmware toggles are prerequisites rather than software steps — check them in UEFI setup if `/dev/kvm` is missing:
@@ -139,13 +139,36 @@ grep -q '^uri_default' "$HOME/.config/libvirt/libvirt.conf" 2>/dev/null \
 
 **NAT network:** the package defines the `default` network without autostart. `net-autostart` starts it whenever the daemon starts; the guarded `net-start` brings it up now, because the daemon was already running when the flag was set.
 
-**Firewall interaction:** on a host running **ufw**, also permit guest transit with `sudo ufw route allow from 192.168.122.0/24` (libvirt's default subnet; CachyOS wiki). Without ufw, libvirt's own rules suffice, and NAT needs no `nftables.service`.
+**Firewall interaction:** on a host running **ufw**, also permit guest transit with `sudo ufw route allow from 192.168.122.0/24` (libvirt's default subnet; CachyOS wiki). On a host running the ry-install profile, ufw is masked and the managed `/etc/nftables.conf` sets `policy drop` on the `inet filter` input and forward chains. A drop in any base chain is final whatever libvirt's own table accepts, so the guest gets no DHCP, DNS or NAT until `virbr0` is opened there. ry-install treats VMs as out of scope and overwrites hand edits to that file, so open it from a libvirt network hook, which re-applies the rules each time the `default` network starts. Save this as `/etc/libvirt/hooks/network`:
+
+```text
+#!/bin/sh
+# Re-open ry-install's default-deny for virbr0 each time the default network starts
+[ "$1" = default ] && [ "$2" = started ] || exit 0
+nft list chain inet filter forward >/dev/null 2>&1 || exit 0
+nft list chain inet filter forward | grep -q virbr0 && exit 0
+nft insert rule inet filter input iifname virbr0 udp dport '{ 53, 67 }' accept
+nft insert rule inet filter input iifname virbr0 tcp dport 53 accept
+nft insert rule inet filter forward iifname virbr0 accept
+nft insert rule inet filter forward oifname virbr0 ct state established,related accept
+```
+
+```sh
+sudo install -d -m 0755 /etc/libvirt/hooks
+sudoedit /etc/libvirt/hooks/network
+sudo chmod 0755 /etc/libvirt/hooks/network
+sudo systemctl restart libvirtd.service
+virsh net-destroy default && virsh net-start default
+sudo nft list chain inet filter forward
+```
+
+libvirtd reads hooks only at start, hence the restart. The rules live in the running ruleset alone: anything that restarts `nftables.service` — a ry-install run that rewrites `/etc/nftables.conf` does — flushes them together with libvirt's own NAT table, so restart the `default` network afterwards (guests shut down first, as in P6).
 
 **No global dnsmasq:** libvirt spawns its own per-network dnsmasq on `virbr0`; a global instance on `0.0.0.0:53` conflicts unless it uses `bind-interfaces`/`except-interface` (Arch wiki, Libvirt). Install the package; do not enable its service.
 
 **Group model:** log out and back in (or `newgrp libvirt` per shell) after `usermod`; no reboot and no `kvm` group step. System-mode guests run as libvirt's own qemu user, so your account needs only `libvirt` for socket access (CachyOS wiki; Arch wiki, Libvirt).
 
-**Connection URI — why the last two lines exist:** libvirt probes to `qemu:///system` only for a privileged caller; anyone else gets `qemu:///session` (`src/qemu/qemu_conf.c`), which holds none of the domains or networks virt-manager creates on the system connection, so an unqualified `virsh dominfo` would report "domain not found". `uri_default` in `$XDG_CONFIG_HOME/libvirt/libvirt.conf` (default `~/.config`) settles that once for unprivileged users; per shell, `LIBVIRT_DEFAULT_URI=qemu:///system` does the same (fish: `set -Ux LIBVIRT_DEFAULT_URI qemu:///system`). Both `grep` guards keep a re-run from duplicating a line.
+**Connection URI — why the last two lines exist:** libvirt probes to `qemu:///system` only for a privileged caller; anyone else gets `qemu:///session` (`src/qemu/qemu_conf.c`), which holds none of the domains or networks virt-manager creates on the system connection, so an unqualified `virsh dominfo` would report "domain not found". `uri_default` in `$XDG_CONFIG_HOME/libvirt/libvirt.conf` (default `~/.config`) settles that once for unprivileged users; per shell, `LIBVIRT_DEFAULT_URI=qemu:///system` does the same (fish: `set -gx LIBVIRT_DEFAULT_URI qemu:///system`; `set -Ux` makes it permanent). Both `grep` guards keep a re-run from duplicating a line.
 
 **Verification** (after the re-login):
 
@@ -297,14 +320,14 @@ Run **before** P6 — the clones need GitHub reachable. This phase provisions th
 sudo pacman -S --needed git diffutils fish code shellcheck ripgrep fd \
     nvme-cli lm_sensors iw
 git clone -c user.name=Sandbox -c user.email=sandbox@kvm.internal \
-    https://github.com/ryanmusante/ry-install ~/ry-install
+    https://github.com/ryanmusante/ry-install ~/src/ry-install
 git clone -c user.name=Sandbox -c user.email=sandbox@kvm.internal \
-    https://github.com/ryanmusante/ry-verify ~/ry-verify
-git -C ~/ry-install switch -c sandbox
-git -C ~/ry-verify switch -c sandbox
+    https://github.com/ryanmusante/ry-verify ~/src/ry-verify
+git -C ~/src/ry-install switch -c sandbox
+git -C ~/src/ry-verify switch -c sandbox
 ```
 
-`git`, `diffutils` and `fish` run the workload (both scripts are Fish); `code`, `shellcheck`, `ripgrep` and `fd` are the review toolchain; `nvme-cli` and `lm_sensors` belong to the installer's own package set and `iw` backs its Wi-Fi probes, so its real code paths run instead of "command absent" fallbacks. `-c` writes a local identity into each new repository, and the `sandbox` branch keeps edits off `main`. Node and npm stay absent — the native Claude Code installer needs neither.
+`git`, `diffutils` and `fish` run the workload (both scripts are Fish); `code`, `shellcheck`, `ripgrep` and `fd` are the review toolchain; `nvme-cli` and `lm_sensors` belong to the installer's own package set and `iw` backs its Wi-Fi probes, so its real code paths run instead of "command absent" fallbacks. `-c` writes a local identity into each new repository, and the `sandbox` branch keeps edits off `main`. The checkouts live under `~/src` because `~/ry-install` is the pair's own state directory: a run there writes `logs/`, `backups/` and `.lock` into it, and P9's `git clean -fd` would delete them. Node and npm stay absent — the native Claude Code installer needs neither.
 
 **Claude Code** (native installer, auto-updating):
 
@@ -379,7 +402,7 @@ sudo systemctl restart libvirtd.service   # only if the guest was running
 
 ```sh
 getent hosts github.com
-git -C ~/ry-install ls-remote origin
+git -C ~/src/ry-install ls-remote origin
 curl -sI https://api.anthropic.com | head -n 1
 ```
 
@@ -495,6 +518,6 @@ virsh snapshot-create-as --domain cachyos-guest --name pre-run-baseline \
 
 Reference only — not part of the KVM configuration; ignore it if you repurpose the guest. The environment was sized and contained for this job, recorded here so the P3 and P6 choices have context.
 
-Two repositories, both v7.219.0 at `main` on 2026-09-27: `ryanmusante/ry-install` (`ry-install.fish`, 3,479 lines, 209 functions) and `ryanmusante/ry-verify` (`ry-verify.fish`, 3,099 lines, 232 functions). The figures are a rolling pin — `wc -l` and column-0 `function` definitions — and any upstream push moves them.
+Two repositories, both v7.302.0 (2026-11-21): `ryanmusante/ry-install` (`ry-install.fish`, 3,962 lines, 255 functions) and `ryanmusante/ry-verify` (`ry-verify.fish`, 2,881 lines, 193 functions). The figures are a rolling pin — `wc -l` and column-0 `function` definitions — and any upstream push moves them.
 
 Claude Code reads each checkout in place and cites paths and line ranges instead of pasting files. A review sweep covers variable scoping (`set -l` discipline in nested blocks), Fish's 1-based indexing, error propagation (`$status`, `; or return 1`, `argparse` flag specs against the Fish 3.6+ floor), the installer's kernel-parameter assignments against mainline documentation, and the scripts' amdgpu/`gfx1151` sysfs checks. Those sysfs checks are static-only here: the guest has no amdgpu device, so functional validation belongs on bare metal. None of this changes the guest's configuration; it only justifies the vCPU/RAM sizing (P3) and the containment (P6).
